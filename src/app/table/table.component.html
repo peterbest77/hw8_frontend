@@ -1,0 +1,30 @@
+<div class="table container" style="width: 100%">
+  <table class="table widget-table table-hover">
+
+<thead>
+      <tr class="row">
+         <th class="col-1" >#</th>
+
+         <th class="col-3">Date</th>
+         <th class="col-2">Statue</th>
+         <th class="col-2">Temp.High(&deg;F)</th>
+         <th class="col-2">Temp.Low(&deg;F)</th>
+         <th class="col-2">Wind Speed (mph)</th>
+      </tr>
+    </thead>
+<tbody>
+    <tr *ngFor="let d  of days; let i = index" scope="row" class="row" (click)="getDetail(i, 3);" >
+       <td class="col-1" ><b>{{i + 1}}</b></td>
+
+         <td class="col-3"><p style="text-decoration: underline; color: blue" >{{data[i]}}</p> </td>
+         <td class="col-2"><img src={{img[i]}} width=50 height=50 alt="">{{status[i]}}</td>
+         <td class="col-2">{{tempHigh[i]}}</td>
+         <td class="col-2">{{tempLow[i]}}</td>
+         <td class="col-2">{{windSpeed[i]}}</td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+
+
+
