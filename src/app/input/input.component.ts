@@ -166,7 +166,7 @@ var json = await this.http.get('https://csci571hw8-001.wl.r.appspot.com/sendCity
   async onSubmit() {
 this.clickResetEvent();
     this.bar = true;
-    url = 'https://ipinfo.io/json?token=a0cca1bb9680cf';
+    url = 'https://ipinfo.io/json?token=';
     var auto = await this.http.get(url).toPromise() as any;
     console.log(auto.loc);
     console.log(auto);
@@ -194,7 +194,7 @@ this.clickResetEvent();
       lat = strs[0];
       lng = strs[1];
     }else {
-       var url = "https://maps.googleapis.com/maps/api/geocode/json?address="+this.street +"+" +this.city + "+"+this.state+"&key=AIzaSyCPX__rKKqlkJ_my9RfEbYFWQykPEB9SwU";
+       var url = "https://maps.googleapis.com/maps/api/geocode/json?address="+this.street +"+" +this.city + "+"+this.state+"&key=";
     var  json1;
        json1 = await this.http.get(url).toPromise() as any;
 
