@@ -1,0 +1,1056 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <ctype.h>
+#include <math.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <string.h>
+#include <time.h>
+#include "my402list.h"
+#include "cs402.h"
+
+typedef struct TransactionData
+{
+    char type;
+    time_t time;
+    int amount;
+    char* description;
+} BankTransactions;
+
+
+static
+void print(My402List* myList) {
+    My402ListElem* element = NULL;
+    if (My402ListEmpty(myList)) {
+        fprintf(stderr, "Reaching the end of tfile. \n");
+        exit(1);
+    }
+    BankTransactions* bank = NULL;
+
+    fprintf(stdout,"+-----------------+--------------------------+----------------+----------------+\n");
+    fprintf(stdout,"|       Date      | Description              |         Amount |        Balance |\n");
+    fprintf(stdout,"+-----------------+--------------------------+----------------+----------------+\n");
+
+    int balance= 0;
+
+    for (element = My402ListFirst(myList); element != NULL; element = My402ListNext(myList, element)) {
+        bank = (BankTransactions*) element -> obj;
+        time_t time = bank -> time;
+
+        char currentTime[26];
+        strncpy(currentTime, ctime(&time), sizeof(currentTime));
+        int j = 0;
+        char date[16];
+        for (int i = 0; i < 15; ++i) {
+            if (i > 10) {
+                j = i + 9;
+            }
+            date[i] = currentTime[j];
+            j++;
+        }
+        date[15] = '\0';
+        fprintf(stdout, "| %s | ", date);
+
+        char* des;
+        des = bank -> description;
+        int countNumberOfChar = 0;
+        int limitNumberOChar = 24;
+        des[24] = '\0';
+        if (strlen(des) > limitNumberOChar) {
+            for (int i = 0; i < limitNumberOChar; ++i) {
+                fprintf(stdout, "%c", des[i]);
+            }
+        }
+        else {
+            for (int i = 0; des[i] != '\0'; ++i) {
+                fprintf(stdout, "%c", des[i]);
+                countNumberOfChar++;
+            }
+        }
+        for (int i = 1; i <= limitNumberOChar - countNumberOfChar; ++i) {
+            fprintf(stdout, " ");
+        }
+        printf("%s", " | ");
+
+        int amount = bank -> amount;
+        char type = bank -> type;
+        
+
+        char numOfAmount[15];
+        int i = 0;
+        if (type == '+') {
+            //                        xxxxxxx.xxx.xxx.xx
+            if (amount >= 1000000000) {
+                fprintf(stdout," \?,\?\?\?,\?\?\?.\?\? | ");
+            }
+            else {
+                numOfAmount[0] = ' ';
+                numOfAmount[13] =' ';
+                for (i = 12; i > 0; i--) {
+
+                    if (i == 10) {
+                        numOfAmount[i] = '.';
+                    }
+                    else if (i == 6 || i == 2) {
+                        numOfAmount[i] = ',';
+                    }
+                    else {
+                        numOfAmount[i] = (char)((int)'0' + amount % 10);
+                        amount /= 10;
+                        if (amount == 0) {
+                            i--;
+                            break;
+                        }
+
+                    }
+                }
+                if (i == 10) {
+                    numOfAmount[i] = '.';
+                    i--;
+                    numOfAmount[i] = '0';
+                    i--;
+                }
+                while (i > 0)
+                {
+                    numOfAmount[i] = ' ';
+                    i--;
+                }
+                numOfAmount[14] = '\0';
+                fprintf(stdout, "%s | ", numOfAmount);
+
+
+            }
+        }
+        else {
+            if (amount >= 1000000000) {
+                fprintf(stdout,"(\?,\?\?\?,\?\?\?.\?\?) |");
+
+            }
+            else {
+                numOfAmount[0] = '(';
+                numOfAmount[13] = ')';
+
+                for (i = 12; i > 0; --i) {
+                    if (i == 10) {
+                        numOfAmount[i] = '.';
+                    } else if (i == 6 || i == 2) {
+                        numOfAmount[i] = ',';
+                    } else {
+                        numOfAmount[i] = (char) ((int)'0' + amount % 10);
+                        amount /= 10;
+                        if (amount == 0) {
+                            i--;
+                            break;
+                        }
+                    }
+                }
+                if (i == 10) {
+                    numOfAmount[i] = '.';
+                    i--;
+                    numOfAmount[i] = '0';
+                    i--;
+                }
+                while (i > 0) {
+                    numOfAmount[i] = ' ';
+                    i--;
+                }
+                numOfAmount[14] = '\0';
+                fprintf(stdout, "%s | ", numOfAmount);
+            }
+        }
+	char partBalance[15];
+        amount = bank -> amount;
+        
+        if (type == '-') {
+           balance -= amount;
+        }
+        else {
+            
+ 	    balance += amount;
+        }
+        int copyOfBalance = balance;
+        if (copyOfBalance >= 0) {
+            if (copyOfBalance >= 1000000000) {
+                fprintf(stdout," \?,\?\?\?,\?\?\?.\?\? |\n");
+                
+            }
+            else {
+                partBalance[0] = ' ';
+                partBalance[13] = ' ';
+
+
+                for (i = 12; i > 0; i--) {
+
+                    if (i == 10) {
+                        partBalance[i] = '.';
+                    }
+                    else if (i == 6 || i == 2) {
+                        partBalance[i] = ',';
+                    }
+                    else {
+                        partBalance[i] = (char)((int)'0' + copyOfBalance % 10);
+                        copyOfBalance /= 10;
+                        if (copyOfBalance == 0) {
+                            i--;
+                            break;
+                        }
+
+                    }
+                }
+                if (i == 10) {
+                    partBalance[i] = '.';
+                    i--;
+                    partBalance[i] = '0';
+                    i--;
+                }
+                while (i > 0)
+                {
+                    partBalance[i] = ' ';
+                    i--;
+                }
+                partBalance[14] = '\0';
+                fprintf(stdout, "%s |\n", partBalance);
+            }
+
+
+        }
+        else {
+            copyOfBalance = copyOfBalance *  (-1);
+            if (copyOfBalance >= 1000000000) {
+                fprintf(stdout," (\?,\?\?\?,\?\?\?.\?\?) |\n");
+            }
+            else {
+                partBalance[0] = '(';
+                partBalance[13] = ')';
+                for (i = 12; i > 0; i--) {
+                    if (i == 10) {
+                        partBalance[i] = '.';
+                    }
+                    else if (i == 6 || i == 2) {
+                        partBalance[i] = ',';
+
+                    }
+                    else {
+                        partBalance[i] = (char)((int)'0' + copyOfBalance % 10);
+                        copyOfBalance /= 10;
+                        if (copyOfBalance == 0) {
+                            i--;
+                            break;
+                        }
+                    }
+                    
+
+                }
+	            if (i == 10) {
+                        partBalance[i] = '.';
+                        i--;
+                        partBalance[i] = '0';
+                        i--;
+                    }
+                while (i > 0)
+                    {
+                        partBalance[i] = ' ';
+                        i--;
+                    }
+                    partBalance[14] = '\0';
+                    fprintf(stdout, "%s |\n", partBalance);
+            }
+
+        }
+        
+
+
+}
+    fprintf(stdout,"+-----------------+--------------------------+----------------+----------------+\n");
+
+
+}
+
+
+static
+void readline(FILE * file, My402List* myList) {
+    char buffer[1026];
+    int count = 0;
+    while (fgets(buffer, sizeof(buffer), file) != NULL) {
+        if (buffer[strlen(buffer) - 1] == '\n') {
+            buffer[strlen(buffer) - 1] = '\0';
+        }
+        BankTransactions* bank = (BankTransactions*)malloc(sizeof(BankTransactions));
+        if (strlen(buffer) > 1024) {
+            fprintf(stderr, "\n transaction length cannot beyond 1024. \n");
+            exit(1);
+        }
+        int numOfTab = 0;
+        for (int i = 0; i < strlen(buffer); ++i) {
+            if (buffer[i] == '\t') {
+                numOfTab++;
+            }
+        }
+        
+
+        if (numOfTab < 3) {
+            fprintf(stderr, "\n the number of tabs are less than three, should be 3. \n");
+            exit(1);
+        }
+	if (numOfTab > 3) {
+            fprintf(stderr, "\n the number of tabs are more than three, should be 3. \n");
+            exit(1);
+
+        }
+
+
+
+        char* startPointer = buffer;
+        char* tabPointer = strchr(startPointer, '\t');
+
+        if (tabPointer != NULL) {
+            *tabPointer++ = '\0';
+        }
+        else {
+            fprintf(stderr, "\n timestamp argument is empty. \n");
+            exit(1);
+        }
+        if (startPointer[0] != '+' && startPointer[0] != '-') {
+            fprintf(stderr, "\n transaction type should be either + or -. \n");
+            exit(1);
+        }
+        else {
+            if (startPointer[0] == '+') {
+                bank -> type = '+';
+            }
+            else if (startPointer[0] == '-') {
+                bank -> type = '-';
+            }
+        }
+        startPointer = tabPointer;
+        tabPointer = strchr(startPointer, '\t');
+        if (tabPointer != NULL) {
+            *tabPointer++ = '\0';
+        }
+        else {
+            fprintf(stderr, "\n the third argument is Empty. \n");
+            exit(1);
+        }
+
+        int theLengthOfTimeStamp = 11;
+        if (strlen(startPointer) >= theLengthOfTimeStamp) {
+            fprintf(stderr, "\n timestamp is invalid. \n");
+            exit(-1);
+        }
+
+        time_t transactionTime = atoi(startPointer);
+        time_t currentTime = time(NULL);
+
+        if (transactionTime > currentTime) {
+            fprintf(stderr, "\n transaction time cannot be largeer than current time. \n");
+            exit(-1);
+        }
+        if (transactionTime < 0) {
+            fprintf(stderr, "\n transaction time cannot be a negative number. \n");
+            exit(-1);
+        }
+        bank -> time = transactionTime;
+
+        startPointer = tabPointer;
+        tabPointer = strchr(startPointer, '\t');
+        if (tabPointer != NULL) {
+            *tabPointer++ = '\0';
+        }
+        else {
+            fprintf(stderr, "\n the fouth argument is Empty. \n");
+            exit(1);
+        }
+        int digits = 0;
+        int decimal = 0;
+        int dot = 0;
+        for (int i = 0; i < strlen(startPointer); ++i) {
+            if (dot == 1) {
+                decimal++;
+            }
+            if (startPointer[i] == '.') {
+                dot = 1;
+            }
+            if (dot == 0) {
+                digits++;
+            }
+        }
+
+        if (digits > 7) {
+            fprintf(stderr, "\n The number to the left of the decimal point can be at most 7 digits (i.e., < 10,000,000). \n");
+            exit(-1);
+        }
+
+        if (decimal != 2) {
+            fprintf(stderr, "\n The digits number decimal should be equal two. \n");
+            exit(-1);
+        }
+        char* period = strtok(startPointer, ".");
+        int mainAmount = atoi(period);
+
+        if (mainAmount < 0) {
+            fprintf(stderr, "\n The amount should be a positive number. \n");
+            exit(-1);
+        }
+        period = strtok(NULL, ".");
+        int mainAmountDec = atoi(period);
+        bank -> amount = (100 * mainAmount + mainAmountDec);
+        startPointer = tabPointer;
+        tabPointer = strchr(startPointer, '\t');
+        if (tabPointer != NULL) {
+            fprintf(stderr, "\n must have exactly 4 arguments. \n");
+            exit(-1);
+        }
+
+        if (startPointer == NULL) {
+            fprintf(stderr, "\n cannot empty. \n");
+            exit(-1);
+        }
+        char* numberOfChar = NULL;
+        size_t len = 0;
+        size_t max = 25;
+        numberOfChar = malloc(max);
+        strcpy(numberOfChar, startPointer);
+
+        while (isspace(*numberOfChar))
+        {
+            numberOfChar++;
+        }
+        len = strlen(numberOfChar);
+
+        if (len == 0) {
+            fprintf(stderr, "\n the description cannot be empty\n");
+            exit(-1);
+        }
+
+        bank -> description = strdup(numberOfChar);
+        My402ListAppend(myList, bank);
+        count++;
+    }
+    if (count == 0) {
+        fprintf(stderr, "\n file is empty. \n");
+        exit(-1);
+    }
+
+
+
+}
+//
+//static
+//void BubbleForward(My402List *pList, My402ListElem **pp_elem1, My402ListElem **pp_elem2)
+///* (*pp_elem1) must be closer to First() than (*pp_elem2) */
+//{
+//    My402ListElem *elem1=(*pp_elem1), *elem2=(*pp_elem2);
+//    void *obj1=elem1->obj, *obj2=elem2->obj;
+//    My402ListElem *elem1prev=My402ListPrev(pList, elem1);
+///*  My402ListElem *elem1next=My402ListNext(pList, elem1); */
+///*  My402ListElem *elem2prev=My402ListPrev(pList, elem2); */
+//    My402ListElem *elem2next=My402ListNext(pList, elem2);
+//
+//    My402ListUnlink(pList, elem1);
+//    My402ListUnlink(pList, elem2);
+//    if (elem1prev == NULL) {
+//        (void)My402ListPrepend(pList, obj2);
+//        *pp_elem1 = My402ListFirst(pList);
+//    } else {
+//        (void)My402ListInsertAfter(pList, obj2, elem1prev);
+//        *pp_elem1 = My402ListNext(pList, elem1prev);
+//    }
+//    if (elem2next == NULL) {
+//        (void)My402ListAppend(pList, obj1);
+//        *pp_elem2 = My402ListLast(pList);
+//    } else {
+//        (void)My402ListInsertBefore(pList, obj1, elem2next);
+//        *pp_elem2 = My402ListPrev(pList, elem2next);
+//    }
+//}
+//static
+//void BubbleSortForwardList(My402List *myList)
+//{
+//    My402ListElem *elem=NULL;
+//    int i=0;
+//
+//    int len = My402ListLength(myList);
+//    for (i=0; i < len; i++) {
+//        int j=0, something_swapped=FALSE;
+//        My402ListElem *next_elem=NULL;
+//
+//        for (elem=My402ListFirst(myList), j=0; j < len-i-1; elem=next_elem, j++) {
+//            int cur_val=(int)(elem->obj), next_val=0;
+//
+//            next_elem=My402ListNext(myList, elem);
+//            next_val = (int)(next_elem->obj);
+//
+//            if (cur_val > next_val) {
+//                BubbleForward(myList, &elem, &next_elem);
+//                something_swapped = TRUE;
+//            }
+//        }
+//        if (!something_swapped) break;
+//    }
+//}
+//
+static
+void BubbleForward(My402List *pList, My402ListElem **pp_elem1, My402ListElem **pp_elem2)
+/* (*pp_elem1) must be closer to First() than (*pp_elem2) */
+{
+    My402ListElem *elem1=(*pp_elem1), *elem2=(*pp_elem2);
+    void *obj1=elem1->obj, *obj2=elem2->obj;
+    My402ListElem *elem1prev=My402ListPrev(pList, elem1);
+/*  My402ListElem *elem1next=My402ListNext(pList, elem1); */
+/*  My402ListElem *elem2prev=My402ListPrev(pList, elem2); */
+    My402ListElem *elem2next=My402ListNext(pList, elem2);
+
+    My402ListUnlink(pList, elem1);
+    My402ListUnlink(pList, elem2);
+    if (elem1prev == NULL) {
+        (void)My402ListPrepend(pList, obj2);
+        *pp_elem1 = My402ListFirst(pList);
+    } else {
+        (void)My402ListInsertAfter(pList, obj2, elem1prev);
+        *pp_elem1 = My402ListNext(pList, elem1prev);
+    }
+    if (elem2next == NULL) {
+        (void)My402ListAppend(pList, obj1);
+        *pp_elem2 = My402ListLast(pList);
+    } else {
+        (void)My402ListInsertBefore(pList, obj1, elem2next);
+        *pp_elem2 = My402ListPrev(pList, elem2next);
+    }
+}
+
+static
+void BubbleSortForwardList(My402List *pList)
+{
+    My402ListElem *elem=NULL;
+    int i=0;
+
+    int len = My402ListLength(pList);
+    for (i=0; i < len; i++) {
+        int j=0, something_swapped=FALSE;
+        My402ListElem *next_elem=NULL;
+
+        for (elem=My402ListFirst(pList), j=0; j < len-i-1; elem=next_elem, j++) {
+
+
+            next_elem=My402ListNext(pList, elem);
+
+
+            if (((BankTransactions*)elem ->obj) ->time > ((BankTransactions*)next_elem ->obj) ->time) {
+                BubbleForward(pList, &elem, &next_elem);
+                something_swapped = TRUE;
+            }
+        }
+        if (!something_swapped) break;
+    }
+}
+
+int main(int argc, char * argv[]) {
+    struct stat s;
+    if (argc < 2 || argc > 3) {
+        fprintf(stderr,"Invalid number of command line arguments.\n");
+        exit(1);
+    }
+    else {
+        if (strcmp(argv[1], "sort") != 0) {
+            fprintf(stderr,"Invalid number of command line arguments.\n");
+            exit(1);
+        }
+        My402List* myList = (My402List*) malloc(sizeof(My402List));
+        FILE* file = NULL;
+        if (argc == 2) {
+            file = stdin;
+        }
+        else if (argc == 3) {
+            file = fopen(argv[2], "r");
+            if (stat(argv[2], &s) == 0) {
+                if (s.st_mode & S_IFDIR) {
+                    fprintf(stderr,"Input argument is a Directory\n");
+                    return(0);
+                }
+            }
+        }
+
+
+        readline(file, myList);
+        fclose(file);
+        BubbleSortForwardList(myList);
+        print(myList);
+        free(myList);
+
+    }
+
+    return 0;
+
+}
+
+
+
+
+
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <sys/time.h>
+//#include <ctype.h>
+//#include <math.h>
+//#include <sys/stat.h>
+//#include <errno.h>
+//#include <sys/types.h>
+//#include <unistd.h>
+//#include <string.h>
+//#include <time.h>
+//#include "my402list.h"
+//#include "cs402.h"
+//
+//typedef struct TransactionData
+//{
+//    char type;
+//    time_t time;
+//    int amount;
+//    char* description;
+//} BankTransactions;
+//
+//static
+//void printList(My402List* myList) {
+//    My402ListElem* element = NULL;
+//    if (My402ListEmpty(myList)) {
+//        fprintf(stderr, "Reaching the end of tfile. \n");
+//        exit(1);
+//    }
+//    BankTransactions* bank = NULL;
+//
+//    fprintf(stdout,"+-----------------+--------------------------+----------------+----------------+\n");
+//    fprintf(stdout,"|       Date      | Description              |         Amount |        Balance |\n");
+//    fprintf(stdout,"+-----------------+--------------------------+----------------+----------------+\n");
+//
+//    int balance= 0;
+//
+//    for (element = My402ListFirst(myList); element != NULL; element = My402ListNext(myList, element)) {
+//        bank = (BankTransactions*) element -> obj;
+//        time_t time = bank -> time;
+//
+//        char currentTime[26];
+//        strncpy(currentTime, ctime(&time), sizeof(currentTime));
+//        int j = 0;
+//        char date[16];
+//        for (int i = 0; i < 15; ++i) {
+//            if (i > 10) {
+//                j = i + 9;
+//            }
+//            date[i] = currentTime[j];
+//            j++;
+//        }
+//        date[15] = '\0';
+//        fprintf(stdout, "| %s | ", date);
+//
+//        char* des;
+//        des = bank -> description;
+//        int countNumberOfChar = 0;
+//        int limitNumberOChar = 24;
+//        des[24] = '\0';
+//        if (strlen(des) > limitNumberOChar) {
+//            for (int i = 0; i < limitNumberOChar; ++i) {
+//                fprintf(stdout, "%c", des[i]);
+//            }
+//        }
+//        else {
+//            for (int i = 0; des[i] != '\0'; ++i) {
+//                fprintf(stdout, "%c", des[i]);
+//                countNumberOfChar++;
+//            }
+//        }
+//        for (int i = 0; i <= limitNumberOChar - countNumberOfChar; ++i) {
+//            fprintf(stdout, " ");
+//        }
+//        printf("%s", " | ");
+//
+//
+//        char type = bank -> type;
+//        int amount = bank -> amount;
+//
+//        char numOfAmount[15];
+//        int i = 0;
+//        if (type == '+') {
+//            //                        xxxxxxx.xxx.xxx.xx
+//            if (amount >= 10000000) {
+//                printf("%s"," ?,???,???.?? ");
+//                printf("%s", " | ");
+//            }
+//            else {
+//                numOfAmount[0] = ' ';
+//                numOfAmount[13] =' ';
+//                for (i = 12; i > 0; i--) {
+//
+//                    if (i == 10) {
+//                        numOfAmount[i] = '.';
+//                    }
+//                    else if (i == 6 || i == 2) {
+//                        numOfAmount[i] = ',';
+//                    }
+//                    else {
+//                        numOfAmount[i] = (char)(((int)'0') + (amount % 10));
+//                        amount /= 10;
+//                        if (amount == 0) {
+//                            i--;
+//                            break;
+//                        }
+//
+//                    }
+//                }
+//                if (i == 10) {
+//                    numOfAmount[i] = '.';
+//                    i--;
+//                    numOfAmount[i] = '0';
+//                    i--;
+//                }
+//                while (i > 0)
+//                {
+//                    numOfAmount[i] = ' ';
+//                    i--;
+//                }
+//                numOfAmount[14] = '\0';
+//                fprintf(stdout, "%s | ", numOfAmount);
+//
+//
+//            }
+//        }
+//        else {
+//            if (amount >= 10000000) {
+//                printf("%s"," (?,???,???.??) ");
+//                printf("%s", " | ");
+//            }
+//            else {
+//                numOfAmount[0] = '(';
+//                numOfAmount[13] = ')';
+//            }
+//            for (i = 12; i > 0; --i) {
+//                if (i == 10) {
+//                    numOfAmount[i] = '.';
+//                }
+//                else if (i == 6 || i == 2) {
+//                    numOfAmount[i] = ',';
+//                }
+//                else {
+//                    numOfAmount[i] = (char)(((int)'0') + (amount % 10));
+//                    amount /= 10;
+//                    if (amount == 0) {
+//                        i--;
+//                        break;
+//                    }
+//                }
+//            }
+//            if (i == 10) {
+//                numOfAmount[i] = '.';
+//                i--;
+//                numOfAmount[i] = '0';
+//                i--;
+//            }
+//            while (i > 0) {
+//                numOfAmount[i] = ' ';
+//                i--;
+//            }
+//            numOfAmount[14] = '\10';
+//            fprintf(stdout, "%s | ", numOfAmount);
+//
+//        }
+//        amount = bank -> amount;
+//        char partBalance[15];
+//        if (type == '+') {
+//            balance += amount;
+//        }
+//        else {
+//            balance -= amount;
+//        }
+//        int copyOfBalance = balance;
+//        if (copyOfBalance >= 0) {
+//            if (copyOfBalance >= 10000000) {
+//                printf("%s"," ?,???,???.?? ");
+//                printf("%s", " | ");
+//            }
+//            else {
+//                partBalance[0] = ' ';
+//                partBalance[13] = ' ';
+//
+//
+//                for (i = 12; i > 0; i--) {
+//
+//                    if (i == 10) {
+//                        partBalance[i] = '.';
+//                    }
+//                    else if (i == 6 || i == 2) {
+//                        partBalance[i] = ',';
+//                    }
+//                    else {
+//                        partBalance[i] = (char)(((int)'0') + (copyOfBalance % 10));
+//                        copyOfBalance /= 10;
+//                        if (copyOfBalance == 0) {
+//                            i--;
+//                            break;
+//                        }
+//
+//                    }
+//                }
+//                if (i == 10) {
+//                    partBalance[i] = '.';
+//                    i--;
+//                    partBalance[i] = '0';
+//                    i--;
+//                }
+//                while (i > 0)
+//                {
+//                    partBalance[i] = ' ';
+//                    i--;
+//                }
+//                partBalance[14] = '\0';
+//                fprintf(stdout, "%s |\n", copyOfBalance);
+//            }
+//
+//
+//        }
+//        else {
+//            copyOfBalance *= (-1);
+//            partBalance[0] = '(';
+//            partBalance[13] = ')';
+//            for (int i = 12; i > 0; i--) {
+//                if (i == 10) {
+//                    partBalance[i] = '.';
+//                }
+//                else if (i == 6 || i == 2) {
+//                    partBalance[i] = ',';
+//
+//                }
+//                else {
+//                    partBalance[i] = (char)(((int)'0') + (copyOfBalance % 10));
+//                    copyOfBalance /= 10;
+//                    if (copyOfBalance == 0) {
+//                        i--;
+//                        break;
+//                    }
+//                }
+//                if (i == 10) {
+//                    partBalance[i] = '.';
+//                    i--;
+//                    partBalance[i] = '0';
+//                    i--;
+//                }
+//                while (i > 0)
+//                {
+//                    partBalance[i] = ' ';
+//                    i--;
+//                }
+//                partBalance[14] = '\0';
+//                fprintf(stdout, "%s |\n", balance);
+//
+//            }
+//        }
+//        fprintf(stdout,"+-----------------+--------------------------+----------------+----------------+\n");
+//
+//
+//    }
+//
+//
+//
+//}
+//
+//static
+//void readline(FILE * file, My402List* myList) {
+//    char buffer[1026];
+//    int count = 0;
+//    while (fgets(buffer, sizeof(buffer), file) != NULL) {
+//        if (buffer[strlen(buffer) - 1] == '\n') {
+//            buffer[strlen(buffer) - 1] = '\0';
+//        }
+//        BankTransactions* bank = (BankTransactions*)malloc(sizeof(BankTransactions));
+//        if (strlen(buffer) > 1024) {
+//            fprintf(stderr, "\n transaction length cannot beyond 1024. \n");
+//            exit(1);
+//        }
+//        int numOfTab = 0;
+//        for (int i = 0; i < strlen(buffer); ++i) {
+//            if (buffer[i] == '\t') {
+//                numOfTab++;
+//            }
+//        }
+//        if (numOfTab > 3) {
+//            printf(stderr, "\n the number of tabs are more than three, should be 3. \n");
+//            exit(1);
+//
+//        }
+//        if (numOfTab < 3) {
+//            fprintf(stderr, "\n the number of tabs are less than three, should be 3. \n");
+//            exit(1);
+//        }
+//        char* startPointer = buffer;
+//        char* tabPointer = strchr(startPointer, '\t');
+//
+//        if (tabPointer != NULL) {
+//            *tabPointer++ = '\0';
+//        }
+//        else {
+//            fprintf(stderr, "\n timestamp argument is empty. \n");
+//            exit(1);
+//        }
+//        if (startPointer[0] != '+' && startPointer[0] != '-') {
+//            fprintf(stderr, "\n transaction type should be either + or -. \n");
+//            exit(1);
+//        }
+//        else {
+//            if (startPointer[0] == '+') {
+//                bank -> type = '+';
+//            }
+//            else if (startPointer[0] == '-') {
+//                bank -> type = '-';
+//            }
+//        }
+//        startPointer = tabPointer;
+//        tabPointer = strchr(startPointer, '\t');
+//        if (tabPointer != NULL) {
+//            *tabPointer++ = '\0';
+//        }
+//        else {
+//            printf(stderr, "\n the third argument is Empty. \n");
+//            exit(1);
+//        }
+//
+//        int theLengthOfTimeStamp = 11;
+//        if (strlen(startPointer) >= theLengthOfTimeStamp) {
+//            fprintf(stderr, "\n timestamp is invalid. \n");
+//            exit(1);
+//        }
+//
+//        time_t transactionTime = atoi(startPointer);
+//        time_t currentTime = time(NULL);
+//
+//        if (transactionTime > currentTime) {
+//            fprintf(stderr, "\n transaction time cannot be largeer than current time. \n");
+//            exit(1);
+//        }
+//        if (transactionTime < 0) {
+//            fprintf(stderr, "\n transaction time cannot be a negative number. \n");
+//            exit(1);
+//        }
+//        bank -> time = transactionTime;
+//
+//        startPointer = tabPointer;
+//        if (tabPointer != NULL) {
+//            *tabPointer++ = '\0';
+//        }
+//        else {
+//            fprintf(stderr, "\n the fouth argument is Empty. \n");
+//            exit(1);
+//        }
+//        int digits = 0;
+//        int decimal = 0;
+//        int dot = 0;
+//        for (int i = 0; i < strlen(startPointer); ++i) {
+//            if (dot == 1) {
+//                decimal++;
+//            }
+//            if (startPointer[i] == '.') {
+//                dot = 1;
+//            }
+//            if (dot == 0) {
+//                digits++;
+//            }
+//        }
+//
+//        if (digits > 7) {
+//            fprintf(stderr, "\n The number to the left of the decimal point can be at most 7 digits (i.e., < 10,000,000). \n");
+//            exit(1);
+//        }
+//
+//        if (decimal != 2) {
+//            fprintf(stderr, "\n The digits number decimal should be equal two. \n");
+//            exit(1);
+//        }
+//        char* period = strtok(startPointer, ".");
+//        int mainAmount = atoi(period);
+//
+//        if (mainAmount < 0) {
+//            fprintf(stderr, "\n The amount should be a positive number. \n");
+//            exit(1);
+//        }
+//        period = strtok(NULL, ".");
+//        int mainAmountDec = atoi(period);
+//        bank -> amount = (100 * mainAmount + mainAmountDec);
+//        startPointer = tabPointer;
+//        tabPointer = strchr(startPointer, '\t');
+//        if (tabPointer != NULL) {
+//            fprintf(stderr, "\n must have exactly 4 arguments. \n");
+//            exit(1);
+//        }
+//
+//        if (startPointer == NULL) {
+//            fprintf(stderr, "\n cannot empty. \n");
+//            exit(1);
+//        }
+//        char* numberOfChar = NULL;
+//        size_t len = 0;
+//        size_t max = 25;
+//        numberOfChar = malloc(max);
+//        strcpy(numberOfChar, startPointer);
+//
+//        while (isspace(*numberOfChar))
+//        {
+//            numberOfChar++;
+//        }
+//        len = strlen(numberOfChar);
+//
+//        if (len == 0) {
+//            fprintf(stderr, "\n the description cannot be empty\n");
+//            exit(1);
+//        }
+//
+//        bank -> description = strdup(numberOfChar);
+//        My402ListAppend(myList, bank);
+//        count++;
+//    }
+//    if (count == 0) {
+//        fprintf(stderr, "\n file is empty. \n");
+//        exit(1);
+//    }
+//
+//
+//
+//}
+
+//int main(int argc, char * argv[]) {
+//    struct stat s;
+//    if (argc < 2 || argc > 3) {
+//        fprintf(stderr,"Invalid number of command line arguments.\n");
+//        exit(1);
+//    }
+//    else {
+//        if (strcmp(argv[1], "sort") != 0) {
+//            fprintf(stderr,"Invalid number of command line arguments.\n");
+//            exit(1);
+//        }
+//        My402List* myList = (My402List*) malloc(sizeof(My402List));
+//        FILE* file = NULL;
+//        if (argc == 2) {
+//            file = stdin;
+//        }
+//        else if (argc == 3) {
+//            file = fopen(argv[2], "r");
+//            if (stat(argv[2], &s) == 0) {
+//                if (s.st_mode & S_IFDIR) {
+//                    fprintf(stderr,"Input argument is a Directory\n");
+//                    return(0);
+//                }
+//            }
+//        }
+//
+//
+//        readline(file, myList);
+//        fclose(file);
+//        BubbleSortForwardList(myList);
+//        printList(myList);
+//        free(myList);
+//
+//    }
+//
+//    return 0;
+//
+//}
